@@ -49,7 +49,7 @@ mix project 内に `apps` ディレクトリがある状態で mix new すると
 Elixir アプリを実行したら自動で Application.start が実行される (Supervisor プロセスをスタートする)
 デフォルトだと children は何も指定されてない
 
-# Don't drink kool aid
+## Don't drink kool aid
 
 Umbrella project はある程度の依存関係・設定の共有を行う
 異なる依存、異なる設定が必要になる場合、アンブレラ・プロジェクトで管理する範囲を超えているということになる。
@@ -58,3 +58,8 @@ Umbrella project はある程度の依存関係・設定の共有を行う
 別のGitリポジトリに移して、元のアンブレラに外部依存として追加し直す
 
 Hex.pm のプライベートパッケージとして公開しても良い (組織を作ると、プライベートパッケージをホスティングできる)
+
+# Task & :gen_ctp
+
+Erlang :gen_tcp モジュール
+TCPサーバーを作るのに使える
