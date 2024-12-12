@@ -14,28 +14,52 @@ defmodule KVServer do
   end
 
   defp loop_acceptor(socket) do
-    # socket 接続が有るまでプロセスブロック
     {:ok, client} = :gen_tcp.accept(socket)
-
-    # 来たら、非同期タスクを起動。 Task.Supervisor で監視スタートするので、serve Task が死んでもこのプロセスは死なない
     {:ok, pid} = Task.Supervisor.start_child(KVServer.TaskSupervisor, fn -> serve(client) end)
     :ok = :gen_tcp.controlling_process(client, pid)
-    # 次のループに入って、また接続待ち
+
     loop_acceptor(socket)
   end
 
   defp serve(socket) do
-    socket |> read_line() |> write_line(socket)
+    # case read_line(socket) do
+    #   {:ok, data} ->
+    #     case KVServer.Command.parse(data) do
+    #       {:ok, command} -> KVServer.Command.run(command)
+    #       {:error, _} = err -> err
+    #     end
+    #   {:error, _} = err ->
+    #     err
+    # end
 
+    # with を使うとResult型戻り値のマップに効率的
+    msg =
+      with {:ok, data} <- read_line(socket),
+           {:ok, command} <- KVServer.Command.parse(data),
+           do: KVServer.Command.run(command)
+
+    write_line(socket, msg)
     serve(socket)
   end
 
   defp read_line(socket) do
-    {:ok, data} = :gen_tcp.recv(socket, 0)
-    data
+    :gen_tcp.recv(socket, 0)
   end
 
-  defp write_line(line, socket) do
-    :gen_tcp.send(socket, line)
+  defp write_line(socket, {:ok, text}) do
+    :gen_tcp.send(socket, text)
+  end
+
+  defp write_line(socket, {:error, :unknown_command}) do
+    :gen_tcp.send(socket, "UNKNOWN COMMAND\r\n")
+  end
+
+  defp write_line(_socket, {:error, :closed}) do
+    exit(:shutdown)
+  end
+
+  defp write_line(socket, {:error, error}) do
+    :gen_tcp.send(socket, "ERROR\r\n")
+    exit(error)
   end
 end
